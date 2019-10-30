@@ -26,6 +26,7 @@ class MyJablotron {
 			define('MY_COOKIE_FILE', '/tmp/cookies.txt');
 		}
 		if(is_file(MY_COOKIE_FILE)) {
+			$this->logout();
 			unlink(MY_COOKIE_FILE);
 		}
 	}
@@ -40,6 +41,7 @@ class MyJablotron {
 			$this->curlHandle = null;
 		}
 		if(is_file(MY_COOKIE_FILE)) {
+			$this->logout();
 			unlink(MY_COOKIE_FILE);
 		}
 	}
@@ -92,7 +94,20 @@ class MyJablotron {
 		}
 	}
 
-
+	/**
+	 * Logout
+	 * @return boolean
+	 */
+	public function logout() {
+		$this->curl('https://www.jablonet.net/logout', null);
+		$code = $this->curlGetResponse('httpCode');
+		if($code == 302) {
+			return true;
+		} else {
+			$this->errors[] = 'logout failed - http-code: ' . $code;
+			return false;
+		}
+	}
 
 	/**
 	 * Send PGM signal on section
