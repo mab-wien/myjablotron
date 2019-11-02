@@ -15,19 +15,15 @@ class MyJablotron
     private $username;
     private $password;
     private $serviceId;
-    private $errors;
+    private $errors = [];
+    private $cookieFile;
 
-    public function __construct($username, $password)
+    public function __construct($username, $password, $cookieFile = '/tmp/cookies.txt')
     {
         $this->username = $username;
         $this->password = $password;
-        if (!defined('MY_COOKIE_FILE')) {
-            define('MY_COOKIE_FILE', '/tmp/cookies.txt');
-        }
-        if (is_file(MY_COOKIE_FILE)) {
-            $this->logout();
-            unlink(MY_COOKIE_FILE);
-        }
+        $this->cookieFile = $cookieFile;
+        $this->logout();
     }
 
 
@@ -36,20 +32,18 @@ class MyJablotron
      */
     public function __destruct()
     {
+        $this->logout();
         if (is_resource($this->curlHandle)) {
             curl_close($this->curlHandle);
             $this->curlHandle = null;
-        }
-        if (is_file(MY_COOKIE_FILE)) {
-            $this->logout();
-            unlink(MY_COOKIE_FILE);
         }
     }
 
 
     /**
      * Set debug to STDOUT
-     * @param $enable - boolean Enable or disable debug
+     * @param bool $enable - boolean Enable or disable debug
+     * @param string $file
      * @return null
      */
     public function debug($enable = true, $file = 'php://stdout')
@@ -100,8 +94,12 @@ class MyJablotron
      */
     public function logout()
     {
+        if (!is_file($this->cookieFile)) {
+            return false;
+        }
         $this->curl('https://www.jablonet.net/logout', null);
         $code = $this->curlGetResponse('httpCode');
+        unlink($this->cookieFile);
         if ($code == 302) {
             return true;
         } else {
@@ -324,7 +322,7 @@ class MyJablotron
 
     /**
      * Get Errors
-     * @return - array Errors
+     * @return array - array Errors
      */
     public function getErrors()
     {
@@ -352,8 +350,8 @@ class MyJablotron
         curl_setopt($this->curlHandle, CURLOPT_TIMEOUT, 60);
         curl_setopt($this->curlHandle, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($this->curlHandle, CURLOPT_COOKIESESSION, true);
-        curl_setopt($this->curlHandle, CURLOPT_COOKIEJAR, MY_COOKIE_FILE);
-        curl_setopt($this->curlHandle, CURLOPT_COOKIEFILE, MY_COOKIE_FILE);
+        curl_setopt($this->curlHandle, CURLOPT_COOKIEJAR, $this->cookieFile);
+        curl_setopt($this->curlHandle, CURLOPT_COOKIEFILE, $this->cookieFile);
         if (strlen($postString) > 0) {
             curl_setopt($this->curlHandle, CURLOPT_POST, 1);
             curl_setopt($this->curlHandle, CURLOPT_POSTFIELDS, $postString);
